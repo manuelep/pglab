@@ -1,0 +1,36 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: corso_gis_db
+    shm_size: "${PG_SHM_SIZE:-1gb}"   # evita "could not resize shared memory" sotto carico parallelo
+    environment:
+      POSTGRES_DB: ${PG_DBNAME:-corso_gis}
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:-adminpass}   # solo per il superuser postgres, non usato dagli studenti
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    # Nessun volume dati: tutto effimero, sparisce con "docker compose down".
+    # /docker-entrypoint-initdb.d viene eseguito SOLO al primo avvio su datadir vuoto,
+    # perfetto per un'istanza usa-e-getta come questa.
+    volumes:
+      - ./output/init.sql:/docker-entrypoint-initdb.d/10-init-utenti.sql:ro
+    command: >
+      postgres
+      -c fsync=off
+      -c synchronous_commit=off
+      -c full_page_writes=off
+      -c wal_level=minimal
+      -c max_wal_senders=0
+      -c shared_buffers=${PG_SHARED_BUFFERS:-1GB}
+      -c effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-2560MB}
+      -c work_mem=${PG_WORK_MEM:-32MB}
+      -c maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-256MB}
+      -c max_connections=${PG_MAX_CONNECTIONS:-200}
+      -c wal_buffers=${PG_WAL_BUFFERS:-64MB}
+      -c max_wal_size=${PG_MAX_WAL_SIZE:-4GB}
+      -c checkpoint_timeout=30min
+      -c checkpoint_completion_target=0.9
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d corso_gis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
