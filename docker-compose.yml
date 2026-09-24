@@ -8,10 +8,10 @@ services:
       POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:-adminpass}   # solo per il superuser postgres, non usato dagli studenti
     ports:
       - "${PG_PORT:-5432}:5432"
+    restart: unless-stopped
     # Nessun volume dati: tutto effimero, sparisce con "docker compose down".
     # /docker-entrypoint-initdb.d viene eseguito SOLO al primo avvio su datadir vuoto,
     # perfetto per un'istanza usa-e-getta come questa.
-    restart: unless-stopped
     volumes:
       - ./output/init.sql:/docker-entrypoint-initdb.d/10-init-utenti.sql:ro
     command: >
